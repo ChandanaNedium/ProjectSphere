@@ -38,7 +38,10 @@ function saveStoredUsers(users: Record<string, { password: string; user: User }>
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
 
-export function registerUser(name: string, email: string, password: string, institution: string, role: User['role']): { success: boolean; error?: string } {
+export function registerUser(
+  name: string, email: string, password: string,
+  institution: string, role: User['role']
+): { success: boolean; error?: string } {
   const stored = getStoredUsers()
   const emailLower = email.toLowerCase()
 

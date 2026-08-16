@@ -25,7 +25,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
@@ -37,12 +37,11 @@ export default function RegisterPage() {
     if (password !== confirmPassword) { setError('Passwords do not match. Please try again.'); return }
 
     setLoading(true)
-    await new Promise(r => setTimeout(r, 900))
-
+    // Instant registration — no artificial delay
     const result = registerUser(name.trim(), email.trim(), password, institution.trim(), role)
     if (result.success) {
       setSuccess(true)
-      setTimeout(() => router.push('/dashboard'), 800)
+      router.push('/dashboard')
     } else {
       setError(result.error || 'Registration failed. Please try again.')
       setLoading(false)

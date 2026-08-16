@@ -1,0 +1,393 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  INSTITUTION_ADMIN
+  PLATFORM_ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  INSTITUTION_ONLY
+  FACULTY_ONLY
+  PRIVATE
+}
+
+enum CollaborationRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum CollaborationStatus {
+  ACTIVE
+  COMPLETED
+  DISBANDED
+}
+
+enum NotificationType {
+  SIMILAR_PROJECT_DETECTED
+  PROJECT_APPROVED
+  PROJECT_CHANGES_REQUESTED
+  PROJECT_REJECTED
+  COLLABORATION_REQUEST
+  COLLABORATION_ACCEPTED
+  COLLABORATION_REJECTED
+  RECOMMENDED_PROJECT
+  NEW_PROJECT_IN_DOMAIN
+  FACULTY_REVIEW
+  SYSTEM
+}
+
+enum InstitutionType {
+  UNIVERSITY
+  ENGINEERING_COLLEGE
+  POLYTECHNIC
+  RESEARCH_INSTITUTE
+  COMMUNITY_COLLEGE
+}
+
+model Institution {
+  id          String          @id @default(cuid())
+  name        String
+  shortName   String
+  location    String
+  city        String
+  state       String
+  country     String          @default("India")
+  type        InstitutionType @default(ENGINEERING_COLLEGE)
+  verified    Boolean         @default(false)
+  website     String?
+  logoUrl     String?
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  users    User[]
+  projects Project[]
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          Role     @default(STUDENT)
+  institutionId String?
+  avatarUrl     String?
+  bio           String?
+  course        String?
+  year          Int?
+  skills        String   @default("[]") // JSON array
+  domains       String   @default("[]") // JSON array
+  githubUrl     String?
+  linkedinUrl   String?
+  isActive      Boolean  @default(true)
+  emailVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  institution Institution? @relation(fields: [institutionId], references: [id])
+
+  ownedProjects        Project[]               @relation("ProjectOwner")
+  projectMemberships   ProjectMember[]
+  savedProjects        SavedProject[]
+  notifications        Notification[]
+  collaborationsSent   CollaborationRequest[]  @relation("CollaborationSender")
+  collaborationsRecv   CollaborationRequest[]  @relation("CollaborationReceiver")
+  collaborationMembers CollaborationMember[]
+  facultyReviews       FacultyReview[]
+  recommendations      Recommendation[]
+  auditLogs            AuditLog[]
+  messages             Message[]
+}
+
+model Project {
+  id               String            @id @default(cuid())
+  title            String
+  slug             String            @unique
+  abstract         String
+  problemStatement String
+  objectives       String            @default("[]") // JSON array
+  domain           String
+  subdomain        String?
+  technologies     String            @default("[]") // JSON array
+  skills           String            @default("[]") // JSON array
+  projectType      String            @default("Academic")
+  methodology      String?
+  architecture     String?
+  dataset          String?
+  expectedOutcome  String?
+  challenges       String?
+  futureScope      String?
+  status           ProjectStatus     @default(DRAFT)
+  visibility       ProjectVisibility @default(PUBLIC)
+  academicYear     String?
+  githubUrl        String?
+  demoUrl          String?
+  reportUrl        String?
+  presentationUrl  String?
+  datasetUrl       String?
+  viewCount        Int               @default(0)
+  saveCount        Int               @default(0)
+  averageRating    Float             @default(0)
+  lookingFor       String            @default("[]") // JSON array
+  tags             String            @default("[]") // JSON array
+
+  ownerId       String
+  institutionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  institution Institution?  @relation(fields: [institutionId], references: [id])
+
+  members         ProjectMember[]
+  files           ProjectFile[]
+  tags_rel        ProjectTag[]
+  savedBy         SavedProject[]
+  facultyReviews  FacultyReview[]
+  notifications   Notification[]
+
+  similarityA     ProjectSimilarity[]  @relation("ProjectA")
+  similarityB     ProjectSimilarity[]  @relation("ProjectB")
+  recommendations Recommendation[]
+  insights        InnovationInsight[]
+
+  collaborationRequestsFrom CollaborationRequest[] @relation("CollabFromProject")
+  collaborations            Collaboration[]
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      String   @default("Member")
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([projectId, userId])
+}
+
+model ProjectFile {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  url       String
+  type      String
+  size      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectTag {
+  id        String   @id @default(cuid())
+  projectId String
+  tag       String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, tag])
+}
+
+model ProjectSimilarity {
+  id             String   @id @default(cuid())
+  projectAId     String
+  projectBId     String
+  overallScore   Float
+  problemScore   Float    @default(0)
+  techScore      Float    @default(0)
+  methodScore    Float    @default(0)
+  descScore      Float    @default(0)
+  explanation    String
+  commonAreas    String   @default("[]") // JSON array
+  differences    String   @default("[]") // JSON array
+  createdAt      DateTime @default(now())
+
+  projectA Project @relation("ProjectA", fields: [projectAId], references: [id], onDelete: Cascade)
+  projectB Project @relation("ProjectB", fields: [projectBId], references: [id], onDelete: Cascade)
+
+  @@unique([projectAId, projectBId])
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  score     Float
+  reason    String
+  category  String   @default("general")
+  viewed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model InnovationInsight {
+  id                 String   @id @default(cuid())
+  projectId          String
+  repeatedApproaches String   @default("[]") // JSON array
+  underexploredAreas String   @default("[]") // JSON array
+  researchGaps       String   @default("[]") // JSON array
+  improvements       String   @default("[]") // JSON array
+  emergingTechs      String   @default("[]") // JSON array
+  generatedAt        DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model SavedProject {
+  id         String   @id @default(cuid())
+  userId     String
+  projectId  String
+  collection String   @default("General")
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model CollaborationRequest {
+  id            String                     @id @default(cuid())
+  fromUserId    String
+  toUserId      String
+  projectId     String
+  message       String
+  skillsOffered String                     @default("[]") // JSON array
+  skillsNeeded  String                     @default("[]") // JSON array
+  status        CollaborationRequestStatus @default(PENDING)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  fromUser User    @relation("CollaborationSender", fields: [fromUserId], references: [id])
+  toUser   User    @relation("CollaborationReceiver", fields: [toUserId], references: [id])
+  project  Project @relation("CollabFromProject", fields: [projectId], references: [id])
+
+  collaboration Collaboration?
+}
+
+model Collaboration {
+  id        String              @id @default(cuid())
+  requestId String              @unique
+  projectId String
+  status    CollaborationStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  request  CollaborationRequest @relation(fields: [requestId], references: [id])
+  project  Project              @relation(fields: [projectId], references: [id])
+  members  CollaborationMember[]
+  messages Message[]
+  tasks    CollaborationTask[]
+}
+
+model CollaborationMember {
+  id              String   @id @default(cuid())
+  collaborationId String
+  userId          String
+  role            String   @default("Member")
+  joinedAt        DateTime @default(now())
+
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@unique([collaborationId, userId])
+}
+
+model Message {
+  id              String   @id @default(cuid())
+  collaborationId String
+  senderId        String
+  content         String
+  createdAt       DateTime @default(now())
+
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  sender        User          @relation(fields: [senderId], references: [id])
+}
+
+model CollaborationTask {
+  id              String   @id @default(cuid())
+  collaborationId String
+  title           String
+  description     String?
+  assignedTo      String?
+  status          String   @default("TODO")
+  dueDate         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  collaboration Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+}
+
+model FacultyReview {
+  id         String        @id @default(cuid())
+  projectId  String
+  facultyId  String
+  status     ProjectStatus
+  feedback   String?
+  reviewedAt DateTime      @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  faculty User    @relation(fields: [facultyId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  link      String?
+  projectId String?
+  createdAt DateTime         @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  resourceId String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}

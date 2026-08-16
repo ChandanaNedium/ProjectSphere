@@ -1,3 +1,10 @@
-import { handlers } from '@/lib/auth'
+import { NextResponse } from 'next/server'
 
-export const { GET, POST } = handlers
+// NextAuth disabled - using client-side localStorage auth
+export async function GET() {
+  return NextResponse.json({ status: 'ok' })
+}
+
+export async function POST() {
+  return NextResponse.json({ status: 'ok' })
+}

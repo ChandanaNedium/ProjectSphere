@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "sonner";
-import Providers from "@/components/providers";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+import type { Metadata } from "next"
+import "./globals.css"
+import { Toaster } from "sonner"
+import Providers from "@/components/providers"
 
 export const metadata: Metadata = {
   title: {
@@ -13,27 +10,26 @@ export const metadata: Metadata = {
   },
   description:
     "ProjectSphere is an AI-powered platform for discovering student projects, checking originality, finding collaborators, and driving academic innovation across institutions.",
-  keywords: ["student projects", "project discovery", "collaboration", "AI", "plagiarism check", "innovation"],
-  openGraph: {
-    title: "ProjectSphere",
-    description: "Turn Student Projects Into a Connected Knowledge Ecosystem",
-    type: "website",
-  },
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.variable}>
+    <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+      </head>
+      <body style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
         <Providers>
           {children}
         </Providers>
         <Toaster richColors position="top-right" />
       </body>
     </html>
-  );
+  )
 }

@@ -1,15 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Network, Home, Search, GitCompare, Lightbulb, Users, BookOpen, Bell,
   TrendingUp, Upload, Star, ArrowRight, Shield, ChevronRight, BarChart2,
-  CheckCircle, Clock, Plus
+  Plus, LogOut
 } from 'lucide-react'
+import { getSession, logout, type User } from '@/lib/client-auth'
 
 const NAV = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard', active: true },
+  { icon: Home, label: 'Dashboard', href: '/dashboard' },
   { icon: Search, label: 'Explore', href: '/explore' },
   { icon: Upload, label: 'Upload Project', href: '/upload' },
   { icon: GitCompare, label: 'Similarity Check', href: '/similarity' },
@@ -37,31 +39,49 @@ const TRENDING = [
 ]
 
 const statusColor: Record<string, string> = {
-  published: '#34d399',
-  under_review: '#fbbf24',
-  draft: '#6b7280',
+  published: '#34d399', under_review: '#fbbf24', draft: '#6b7280',
 }
 const statusLabel: Record<string, string> = {
-  published: 'Published',
-  under_review: 'Under Review',
-  draft: 'Draft',
+  published: 'Published', under_review: 'Under Review', draft: 'Draft',
 }
 const domainColor: Record<string, string> = {
-  'AI & ML': '#60a5fa',
-  'Blockchain': '#c084fc',
-  'IoT': '#34d399',
-  'Data Science': '#fbbf24',
-  'Cybersecurity': '#f87171',
+  'AI & ML': '#60a5fa', 'Blockchain': '#c084fc', 'IoT': '#34d399',
+  'Data Science': '#fbbf24', 'Cybersecurity': '#f87171',
+}
+
+function getInitials(name: string) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
   const [activeNav, setActiveNav] = useState('/dashboard')
 
+  useEffect(() => {
+    const session = getSession()
+    if (!session) {
+      router.replace('/login')
+    } else {
+      setUser(session)
+    }
+  }, [router])
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
+
+  if (!user) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'hsl(222, 47%, 6%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15 }}>Checking authentication…</div>
+      </div>
+    )
+  }
+
   return (
-    <div style={{
-      minHeight: '100vh', background: 'hsl(222, 47%, 6%)', color: 'hsl(210, 40%, 96%)',
-      fontFamily: 'Inter, system-ui, sans-serif', display: 'flex',
-    }}>
+    <div style={{ minHeight: '100vh', background: 'hsl(222, 47%, 6%)', color: 'hsl(210, 40%, 96%)', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
       {/* Sidebar */}
       <aside style={{
         width: 240, flexShrink: 0,
@@ -69,7 +89,6 @@ export default function DashboardPage() {
         display: 'flex', flexDirection: 'column', padding: '20px 12px',
         position: 'sticky', top: 0, height: '100vh',
       }}>
-        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', marginBottom: 28 }}>
           <div style={{
             width: 34, height: 34, borderRadius: 10,
@@ -81,7 +100,6 @@ export default function DashboardPage() {
           <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>ProjectSphere</span>
         </div>
 
-        {/* Nav */}
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
           {NAV.map(item => {
             const isActive = activeNav === item.href
@@ -110,17 +128,29 @@ export default function DashboardPage() {
           padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)', marginTop: 16,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div style={{
-              width: 34, height: 34, borderRadius: '50%',
+              width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
               background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white',
-            }}>PS</div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>Priya Sharma</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>IIT Bombay · Student</div>
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800, color: 'white',
+            }}>{getInitials(user.name)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.institution} · {user.role}</div>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
+              padding: '7px', borderRadius: 7, background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.15)', color: '#f87171', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <LogOut style={{ width: 13, height: 13 }} /> Sign Out
+          </button>
         </div>
       </aside>
 
@@ -130,7 +160,9 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 36 }}>
           <div>
             <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px', marginBottom: 4 }}>Dashboard</h1>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Welcome back, Priya! Here's what's happening on ProjectSphere.</p>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+              Welcome back, <strong style={{ color: 'white' }}>{user.name.split(' ')[0]}</strong>! Here&apos;s what&apos;s happening on ProjectSphere.
+            </p>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <button style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}>
@@ -146,7 +178,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats cards */}
+        {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {[
             { label: 'My Projects', value: '2', icon: BookOpen, color: '#60a5fa', bg: 'rgba(59,130,246,0.1)' },
@@ -169,7 +201,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Two column layout */}
+        {/* Two columns */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
           {/* My Projects */}
           <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', padding: '24px' }}>
@@ -183,31 +215,23 @@ export default function DashboardPage() {
               {MY_PROJECTS.map(p => (
                 <div key={p.title} style={{ padding: '14px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{p.title}</span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
-                      background: `${statusColor[p.status]}22`, color: statusColor[p.status],
-                    }}>{statusLabel[p.status]}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{p.title}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: `${statusColor[p.status]}22`, color: statusColor[p.status] }}>{statusLabel[p.status]}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                     <span style={{ color: domainColor[p.domain] || '#60a5fa', fontWeight: 600 }}>{p.domain}</span>
-                    <span>⭐ {p.stars} stars</span>
+                    <span>⭐ {p.stars}</span>
                     <span style={{ color: p.similarity > 50 ? '#fb923c' : '#34d399' }}>~{p.similarity}% similar</span>
                   </div>
                 </div>
               ))}
-              <Link href="/upload" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '12px', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.3)', fontSize: 13, textDecoration: 'none',
-                transition: 'border-color 0.2s, color 0.2s',
-              }}>
+              <Link href="/upload" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 10, border: '1px dashed rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.3)', fontSize: 13, textDecoration: 'none' }}>
                 <Plus style={{ width: 14, height: 14 }} /> Upload new project
               </Link>
             </div>
           </div>
 
-          {/* Trending now */}
+          {/* Trending */}
           <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ fontWeight: 700, fontSize: 16 }}>🔥 Trending Topics</h2>
@@ -216,7 +240,7 @@ export default function DashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {TRENDING.map((t, i) => (
                 <div key={t.title} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <span style={{ fontSize: 20, fontWeight: 900, color: 'rgba(255,255,255,0.15)', width: 24, textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: 'rgba(255,255,255,0.15)', width: 24, textAlign: 'center', flexShrink: 0 }}>{i + 1}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{t.title}</div>
                     <span style={{ fontSize: 11, color: domainColor[t.domain] || '#60a5fa', fontWeight: 600 }}>{t.domain}</span>
@@ -228,7 +252,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recommended Projects */}
+        {/* Recommended */}
         <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', padding: '24px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h2 style={{ fontWeight: 700, fontSize: 16 }}>✨ Recommended for You</h2>
@@ -239,10 +263,7 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
             {RECOMMENDED.map(r => (
               <div key={r.title} style={{ padding: '16px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{
-                  display: 'inline-block', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, marginBottom: 10,
-                  background: `${domainColor[r.domain] || '#60a5fa'}22`, color: domainColor[r.domain] || '#60a5fa',
-                }}>{r.domain}</span>
+                <span style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, marginBottom: 10, background: `${domainColor[r.domain] || '#60a5fa'}22`, color: domainColor[r.domain] || '#60a5fa' }}>{r.domain}</span>
                 <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.4, marginBottom: 10 }}>{r.title}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                   <span>{r.college}</span>
@@ -264,8 +285,7 @@ export default function DashboardPage() {
             <Link key={a.label} href={a.href} style={{
               padding: '20px', borderRadius: 14, background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)', textDecoration: 'none', color: 'inherit',
-              display: 'flex', flexDirection: 'column', gap: 10,
-              transition: 'border-color 0.2s, background 0.2s',
+              display: 'flex', flexDirection: 'column', gap: 10, transition: 'border-color 0.2s',
             }}>
               <a.icon style={{ width: 22, height: 22, color: a.color }} />
               <div style={{ fontWeight: 700, fontSize: 14 }}>{a.label}</div>

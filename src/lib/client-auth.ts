@@ -5,22 +5,14 @@ export interface User {
   id: string
   name: string
   email: string
-  role: 'student' | 'faculty' | 'admin'
+  role: 'student' | 'faculty'
   institution: string
 }
 
 const DEMO_USERS: Record<string, { password: string; user: User }> = {
-  'student@demo.com': {
-    password: 'demo1234',
-    user: { id: 'demo-student', name: 'Priya Sharma', email: 'student@demo.com', role: 'student', institution: 'IIT Bombay' },
-  },
   'faculty@demo.com': {
     password: 'demo1234',
     user: { id: 'demo-faculty', name: 'Dr. Ramesh Iyer', email: 'faculty@demo.com', role: 'faculty', institution: 'IIT Bombay' },
-  },
-  'admin@demo.com': {
-    password: 'demo1234',
-    user: { id: 'demo-admin', name: 'Ananya Mishra', email: 'admin@demo.com', role: 'admin', institution: 'ProjectSphere HQ' },
   },
 }
 

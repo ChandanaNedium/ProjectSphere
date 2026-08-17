@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Network, Home, Search, GitCompare, Lightbulb, Users, BarChart2, Shield,
-  Upload, LogOut,
+  Upload, LogOut, CheckCircle, Award
 } from 'lucide-react'
 import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { getSession, logout, type User } from '@/lib/client-auth'
@@ -18,6 +18,14 @@ const NAV = [
   { icon: Users,      label: 'Collaborations',      href: '/collaborate' },
   { icon: BarChart2,  label: 'Analytics',           href: '/analytics' },
   { icon: Shield,     label: 'Originality Reports', href: '/reports' },
+]
+
+// Faculty specific navigation items (visible only to faculty role)
+const FACULTY_NAV = [
+  { icon: CheckCircle, label: 'Review Submissions', href: '/faculty/review' },
+  { icon: Award,       label: 'Endorse Projects',   href: '/faculty/endorse' },
+  { icon: Users,       label: 'Collaboration Approvals', href: '/faculty/collabs' },
+  { icon: BarChart2,   label: 'Domain Stats',      href: '/faculty/stats' },
 ]
 
 // Use useLayoutEffect on client, useEffect as fallback (SSR)
@@ -83,29 +91,29 @@ export default function Sidebar() {
         <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>ProjectSphere</span>
       </div>
 
-      {/* Navigation */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {NAV.map(item => {
-          const isActive = pathname === item.href
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                borderRadius: 8, textDecoration: 'none', fontSize: 13.5, fontWeight: 600,
-                background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
-                color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                transition: 'background 0.15s, color 0.15s',
-                borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
-              }}
-            >
-              <item.icon style={{ width: 16, height: 16, flexShrink: 0 }} />
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
+        {/* Navigation */}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[...NAV, ...(user?.role === 'faculty' ? FACULTY_NAV : [])].map(item => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                  borderRadius: 8, textDecoration: 'none', fontSize: 13.5, fontWeight: 600,
+                  background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
+                  color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.5)',
+                  transition: 'background 0.15s, color 0.15s',
+                  borderLeft: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+                }}
+              >
+                <item.icon style={{ width: 16, height: 16, flexShrink: 0 }} />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
       {/* User card */}
       <div style={{

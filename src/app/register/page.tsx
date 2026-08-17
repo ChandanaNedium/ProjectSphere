@@ -9,7 +9,6 @@ import { registerUser } from '@/lib/client-auth'
 const ROLES = [
   { value: 'student' as const, label: '🎓 Student', desc: 'Upload, discover & collaborate' },
   { value: 'faculty' as const, label: '👨‍🏫 Faculty', desc: 'Review & mentor projects' },
-  { value: 'admin' as const, label: '⚙️ Admin', desc: 'Manage institution projects' },
 ]
 
 export default function RegisterPage() {
@@ -20,7 +19,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPwd, setShowPwd] = useState(false)
-  const [role, setRole] = useState<'student' | 'faculty' | 'admin'>('student')
+  const [role, setRole] = useState<'student' | 'faculty'>('student')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)

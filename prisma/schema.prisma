@@ -391,3 +391,30 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id])
 }
+
+model GlobalSimilarityCheck {
+  id               String   @id @default(cuid())
+  userId           String?
+  projectId        String?
+  projectTitle     String
+  projectDomain    String
+  technologies     String   @default("[]") // JSON array
+  methodology      String?
+  problemStatement String?
+  
+  overallScore     Float
+  assessment       String
+  highestMatch     Float
+  highestSource    String
+  
+  sourcesAnalyzed  String   // JSON { projectSphere: number, github: number, web: number, research: number, total: number }
+  sourceScores     String   // JSON { projectSphere: number, github: number, web: number, research: number }
+  
+  queriesGenerated String   @default("[]") // JSON array of queries executed
+  topMatches       String   // JSON array of ExternalProjectResult with scores & differences
+  researchGaps     String   // JSON { overExplored: string[], emerging: string[], gaps: string[] }
+  suggestions      String   // JSON array of strings
+  
+  createdAt        DateTime @default(now())
+}
+

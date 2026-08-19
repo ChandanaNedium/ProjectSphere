@@ -125,7 +125,10 @@ function ReportCard({ project }: { project: Project }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }}>
+        <Link href={`/similarity?ref=${project.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#c084fc', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, background: 'rgba(192,132,252,0.1)', border: '1px solid rgba(192,132,252,0.2)' }}>
+          Run Global Check <ChevronRight style={{ width: 13, height: 13 }} />
+        </Link>
         <Link href={`/project/${project.id}`} style={{ fontSize: 12, fontWeight: 600, color: '#60a5fa', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
           View Project <ChevronRight style={{ width: 13, height: 13 }} />
         </Link>

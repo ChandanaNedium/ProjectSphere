@@ -1,11 +1,11 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import {
   GitCompare, Lightbulb, Users, Bell,
   TrendingUp, Upload, Star, ArrowRight, Shield, ChevronRight,
-  Plus, BookOpen, Eye, CheckCircle, XCircle
+  Plus, BookOpen, Eye, CheckCircle, XCircle, Award
 } from "lucide-react"
 import { getSession, type User } from "@/lib/client-auth"
 import Sidebar from "@/components/Sidebar"
@@ -38,6 +38,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [myProjects, setMyProjects] = useState<Project[]>([])
   const [starredMap, setStarredMap] = useState<Record<string, boolean>>({})
+  const [endorsedSet, setEndorsedSet] = useState<Set<string>>(new Set())
+  const [endorsedBy, setEndorsedBy] = useState<Record<string, string>>({})
 
   const refreshDashboardData = (currentUser?: User | null) => {
     const session = currentUser !== undefined ? currentUser : getSession()
@@ -48,6 +50,10 @@ export default function DashboardPage() {
     const map: Record<string, boolean> = {}
     all.forEach(p => { map[p.id] = isProjectStarred(p.id) })
     setStarredMap(map)
+    try {
+      setEndorsedSet(new Set(JSON.parse(localStorage.getItem('ps_endorsed_projects') || '[]')))
+      setEndorsedBy(JSON.parse(localStorage.getItem('ps_endorsed_by') || '{}'))
+    } catch {}
 
     if (session?.role === "faculty") {
       // Faculty Dashboard: Only show projects uploaded by faculty or where faculty is collaborator
@@ -150,8 +156,15 @@ export default function DashboardPage() {
               ) : (
                 myProjects.slice(0, 5).map(p => {
                   const isStarred = !!starredMap[p.id]
+                  const isProjEndorsed = endorsedSet.has(p.id)
+                  const projEndorserName = endorsedBy[p.id] || 'Faculty'
                   return (
-                    <div key={p.id} style={{ padding: "14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", display: "block" }}>
+                    <div key={p.id} style={{ padding: "14px", borderRadius: 10, background: isProjEndorsed ? "rgba(251,191,36,0.04)" : "rgba(255,255,255,0.03)", border: isProjEndorsed ? "1px solid rgba(251,191,36,0.3)" : "1px solid rgba(255,255,255,0.06)", display: "block" }}>
+                      {isProjEndorsed && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, fontSize: 11, color: '#fbbf24', fontWeight: 700 }}>
+                          <Award style={{ width: 11, height: 11 }} /> Faculty Endorsed by {projEndorserName}
+                        </div>
+                      )}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                         <Link href={`/project/${p.id}`} style={{ fontSize: 13, fontWeight: 700, textDecoration: "none", color: "white" }}>{p.title}</Link>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6, background: `${statusColor[p.status] || '#6b7280'}22`, color: statusColor[p.status] || '#6b7280' }}>

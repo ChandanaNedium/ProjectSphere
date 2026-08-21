@@ -1,8 +1,8 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Search, Filter, BookOpen, Star, GitCompare, ArrowRight } from "lucide-react"
+import { Search, Filter, BookOpen, Star, GitCompare, ArrowRight, Award } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import { getAllProjects, toggleStarProject, isProjectStarred, type Project } from "@/lib/projects"
 
@@ -27,6 +27,8 @@ const statusLabel: Record<string, string> = {
 export default function ExplorePage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [starredMap, setStarredMap] = useState<Record<string, boolean>>({})
+  const [endorsedSet, setEndorsedSet] = useState<Set<string>>(new Set())
+  const [endorsedBy, setEndorsedBy] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
   const [domain, setDomain] = useState('All')
   const [year, setYear] = useState('All Years')
@@ -40,6 +42,10 @@ export default function ExplorePage() {
     const map: Record<string, boolean> = {}
     all.forEach(p => { map[p.id] = isProjectStarred(p.id) })
     setStarredMap(map)
+    try {
+      setEndorsedSet(new Set(JSON.parse(localStorage.getItem('ps_endorsed_projects') || '[]')))
+      setEndorsedBy(JSON.parse(localStorage.getItem('ps_endorsed_by') || '{}'))
+    } catch {}
   }
 
   useEffect(() => {
@@ -165,15 +171,25 @@ export default function ExplorePage() {
             {filtered.map(project => {
               const isSelected = selected.includes(project.id)
               const isStarred = !!starredMap[project.id]
+              const isEndorsed = endorsedSet.has(project.id)
+              const endorserName = endorsedBy[project.id] || 'Faculty'
               const color = domainColors[project.domain] || '#60a5fa'
               return (
                 <div key={project.id} style={{
                   borderRadius: 16,
-                  background: isSelected ? 'rgba(139,92,246,0.07)' : 'rgba(255,255,255,0.03)',
-                  border: isSelected ? '1.5px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                  background: isSelected ? 'rgba(139,92,246,0.07)' : isEndorsed ? 'rgba(251,191,36,0.04)' : 'rgba(255,255,255,0.03)',
+                  border: isSelected ? '1.5px solid rgba(139,92,246,0.5)' : isEndorsed ? '1.5px solid rgba(251,191,36,0.35)' : '1px solid rgba(255,255,255,0.08)',
                   padding: '24px', display: 'flex', flexDirection: 'column', gap: 16,
                   transition: 'border-color 0.2s, background 0.2s',
+                  position: 'relative',
                 }}>
+                  {/* Endorsed badge */}
+                  {isEndorsed && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.3)', width: 'fit-content', marginBottom: -8 }}>
+                      <Award style={{ width: 12, height: 12, color: '#fbbf24' }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24' }}>Faculty Endorsed by {endorserName}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>

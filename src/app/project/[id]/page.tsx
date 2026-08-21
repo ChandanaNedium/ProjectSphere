@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Star, GitCompare, ExternalLink, Calendar, MapPin,
-  Users, Code, BookOpen, Shield, Tag, RefreshCw, GitBranch
+  Users, Code, BookOpen, Shield, Tag, RefreshCw, GitBranch, Award
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import { getProjectById, toggleStarProject, isProjectStarred, type Project } from '@/lib/projects'
@@ -42,6 +42,8 @@ export default function ProjectDetailPage() {
 
   const isAnalyzingRepo = Boolean(analyzingRepository)
   const currentRepoProfile = repositoryProfile
+  const [isEndorsed, setIsEndorsed] = useState(false)
+  const [endorsedByName, setEndorsedByName] = useState('')
 
   const loadProjectData = () => {
     const id = params?.id as string
@@ -50,6 +52,16 @@ export default function ProjectDetailPage() {
     if (p) {
       setProject(p)
       setIsStarred(isProjectStarred(p.id))
+      // Load endorsement status
+      try {
+        const endorsedList: string[] = JSON.parse(localStorage.getItem('ps_endorsed_projects') || '[]')
+        const byMap: Record<string, string> = JSON.parse(localStorage.getItem('ps_endorsed_by') || '{}')
+        setIsEndorsed(endorsedList.includes(p.id))
+        setEndorsedByName(byMap[p.id] || 'Faculty')
+      } catch {
+        setIsEndorsed(false)
+        setEndorsedByName('Faculty')
+      }
     } else {
       setNotFound(true);
     }
@@ -177,6 +189,23 @@ export default function ProjectDetailPage() {
           </div>
         ) : (
           <div style={{ maxWidth: 900 }}>
+            {/* Faculty Endorsement Banner */}
+            {isEndorsed && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 20px', borderRadius: 14, marginBottom: 20,
+                background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08))',
+                border: '1px solid rgba(251,191,36,0.4)',
+              }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Award style={{ width: 20, height: 20, color: '#fbbf24' }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#fbbf24', marginBottom: 2 }}>🏅 Faculty Endorsed Project</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>This project has been officially endorsed by <strong style={{ color: 'rgba(255,255,255,0.8)' }}>{endorsedByName}</strong> for its outstanding quality and contribution.</div>
+                </div>
+              </div>
+            )}
             {/* Header */}
             <div style={{ marginBottom: 28 }}>
               <div

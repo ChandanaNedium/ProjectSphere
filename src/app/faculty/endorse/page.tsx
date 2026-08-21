@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { Award, Star, Search, ExternalLink } from "lucide-react"
@@ -12,6 +12,7 @@ const DOMAIN_COLORS: Record<string, string> = {
 }
 
 const ENDORSED_KEY = "ps_endorsed_projects"
+const ENDORSED_BY_KEY = "ps_endorsed_by"
 
 function getEndorsed(): Set<string> {
   if (typeof window === "undefined") return new Set()
@@ -19,6 +20,14 @@ function getEndorsed(): Set<string> {
 }
 function saveEndorsed(set: Set<string>) {
   localStorage.setItem(ENDORSED_KEY, JSON.stringify([...set]))
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("storage"))
+}
+function getEndorsedBy(): Record<string, string> {
+  if (typeof window === "undefined") return {}
+  try { return JSON.parse(localStorage.getItem(ENDORSED_BY_KEY) || "{}") } catch { return {} }
+}
+function saveEndorsedBy(map: Record<string, string>) {
+  localStorage.setItem(ENDORSED_BY_KEY, JSON.stringify(map))
 }
 
 export default function EndorseProjectsPage() {
@@ -27,16 +36,34 @@ export default function EndorseProjectsPage() {
   const [query, setQuery] = useState("")
   const [filterEndorsed, setFilterEndorsed] = useState<"all" | "endorsed" | "unendorsed">("all")
 
-  useEffect(() => {
+  const refresh = () => {
     setProjects([...getUploadedProjects(), ...SAMPLE_PROJECTS])
     setEndorsed(getEndorsed())
+  }
+
+  useEffect(() => {
+    refresh()
+    window.addEventListener("storage", refresh)
+    return () => window.removeEventListener("storage", refresh)
   }, [])
 
   function toggleEndorse(id: string) {
     setEndorsed(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      const byMap = getEndorsedBy()
+      if (next.has(id)) {
+        next.delete(id)
+        delete byMap[id]
+      } else {
+        next.add(id)
+        // Store faculty name from session or default
+        try {
+          const session = JSON.parse(localStorage.getItem("ps_session") || "{}")
+          byMap[id] = session?.name || "Faculty"
+        } catch { byMap[id] = "Faculty" }
+      }
       saveEndorsed(next)
+      saveEndorsedBy(byMap)
       return next
     })
   }

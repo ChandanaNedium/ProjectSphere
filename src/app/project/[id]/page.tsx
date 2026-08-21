@@ -8,7 +8,7 @@ import {
   Users, Code, BookOpen, Shield, Tag,
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
-import { getProjectById, type Project } from '@/lib/projects'
+import { getProjectById, toggleStarProject, isProjectStarred, type Project } from '@/lib/projects'
 
 const domainColors: Record<string, string> = {
   'AI & ML': '#60a5fa', 'IoT': '#34d399', 'Blockchain': '#c084fc',
@@ -18,28 +18,42 @@ const domainColors: Record<string, string> = {
 }
 
 const statusColor: Record<string, string> = {
-  published: '#34d399', under_review: '#fbbf24', draft: '#6b7280',
+  published: '#34d399', approved: '#34d399', under_review: '#fbbf24', rejected: '#f87171', draft: '#6b7280',
 }
 const statusLabel: Record<string, string> = {
-  published: 'Published', under_review: 'Under Review', draft: 'Draft',
+  published: 'Published', approved: 'Approved', under_review: 'Under Review', rejected: 'Rejected', draft: 'Draft',
 }
 
 export default function ProjectDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [project, setProject] = useState<Project | null>(null)
+  const [isStarred, setIsStarred] = useState(false)
   const [notFound, setNotFound] = useState(false)
 
-  useEffect(() => {
+  const loadProjectData = () => {
     const id = params?.id as string
     if (!id) return
     const p = getProjectById(id)
     if (p) {
       setProject(p)
+      setIsStarred(isProjectStarred(p.id))
     } else {
       setNotFound(true)
     }
+  }
+
+  useEffect(() => {
+    loadProjectData()
+    window.addEventListener('storage', loadProjectData)
+    return () => window.removeEventListener('storage', loadProjectData)
   }, [params])
+
+  const handleToggleStar = () => {
+    if (!project) return
+    toggleStarProject(project.id)
+    loadProjectData()
+  }
 
   const color = project ? (domainColors[project.domain] || '#60a5fa') : '#60a5fa'
 
@@ -135,13 +149,18 @@ export default function ProjectDetailPage() {
                   <ExternalLink style={{ width: 15, height: 15 }} /> GitHub
                 </a>
               )}
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
-                borderRadius: 9, background: 'rgba(251,191,36,0.1)', color: '#fbbf24',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                border: '1px solid rgba(251,191,36,0.25)',
-              }}>
-                <Star style={{ width: 15, height: 15 }} /> Star Project
+              <button
+                onClick={handleToggleStar}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px',
+                  borderRadius: 9,
+                  background: isStarred ? 'rgba(251,191,36,0.2)' : 'rgba(251,191,36,0.1)',
+                  color: '#fbbf24', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  border: `1px solid ${isStarred ? 'rgba(251,191,36,0.5)' : 'rgba(251,191,36,0.25)'}`,
+                }}
+              >
+                <Star style={{ width: 15, height: 15, fill: isStarred ? '#fbbf24' : 'none' }} />
+                {isStarred ? 'Starred' : 'Star Project'}
               </button>
             </div>
 

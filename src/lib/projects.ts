@@ -1,5 +1,7 @@
-// Shared project store using localStorage
+﻿// Shared project store using localStorage
 // Combines hardcoded sample projects with user-uploaded ones
+
+export type ProjectStatus = 'published' | 'approved' | 'under_review' | 'rejected' | 'draft'
 
 export interface Project {
   id: string
@@ -13,9 +15,10 @@ export interface Project {
   stars: number
   type: string
   github?: string
-  status: 'published' | 'under_review' | 'draft'
+  status: ProjectStatus
   uploadedBy?: string // user email
   uploadedAt?: string // ISO date
+  collaborators?: string[] // collaborator emails or names
 }
 
 export const SAMPLE_PROJECTS: Project[] = [
@@ -146,12 +149,31 @@ export const SAMPLE_PROJECTS: Project[] = [
 ]
 
 const UPLOADED_KEY = 'ps_uploaded_projects'
+const STARRED_KEY = 'ps_starred_projects'
+const REVIEW_KEY = 'ps_review_statuses'
+
+/** Get review statuses mapping from localStorage */
+export function getReviewStatuses(): Record<string, { status: 'pending' | 'approved' | 'rejected'; comment?: string }> {
+  if (typeof window === 'undefined') return {}
+  try {
+    return JSON.parse(localStorage.getItem(REVIEW_KEY) || '{}')
+  } catch { return {} }
+}
 
 /** Get all user-uploaded projects from localStorage */
 export function getUploadedProjects(): Project[] {
   if (typeof window === 'undefined') return []
   try {
-    return JSON.parse(localStorage.getItem(UPLOADED_KEY) || '[]')
+    const raw = JSON.parse(localStorage.getItem(UPLOADED_KEY) || '[]')
+    const reviews = getReviewStatuses()
+    return raw.map((p: Project) => {
+      if (reviews[p.id]) {
+        const s = reviews[p.id].status
+        const newStatus: ProjectStatus = s === 'approved' ? 'published' : s === 'rejected' ? 'rejected' : 'under_review'
+        return { ...p, status: newStatus }
+      }
+      return p
+    })
   } catch { return [] }
 }
 
@@ -160,14 +182,52 @@ export function saveUploadedProject(project: Project): void {
   const existing = getUploadedProjects()
   existing.unshift(project) // newest first
   localStorage.setItem(UPLOADED_KEY, JSON.stringify(existing))
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('storage'))
 }
 
-/** Get ALL projects (samples + uploaded) */
+/** Get ALL projects (samples + uploaded) with status overrides applied */
 export function getAllProjects(): Project[] {
-  return [...getUploadedProjects(), ...SAMPLE_PROJECTS]
+  const uploaded = getUploadedProjects()
+  const reviews = getReviewStatuses()
+  const starredMap = getStarredMap()
+
+  const all = [...uploaded, ...SAMPLE_PROJECTS].map(p => {
+    let status = p.status
+    if (reviews[p.id]) {
+      const s = reviews[p.id].status
+      status = s === 'approved' ? 'published' : s === 'rejected' ? 'rejected' : 'under_review'
+    }
+    const starDelta = starredMap[p.id] ? 1 : 0
+    return { ...p, status, stars: p.stars + starDelta }
+  })
+
+  return all
 }
 
 /** Find a project by ID */
 export function getProjectById(id: string): Project | null {
   return getAllProjects().find(p => p.id === id) || null
+}
+
+/** Star Management */
+export function getStarredMap(): Record<string, boolean> {
+  if (typeof window === 'undefined') return {}
+  try {
+    return JSON.parse(localStorage.getItem(STARRED_KEY) || '{}')
+  } catch { return {} }
+}
+
+export function isProjectStarred(id: string): boolean {
+  const map = getStarredMap()
+  return !!map[id]
+}
+
+export function toggleStarProject(id: string): boolean {
+  if (typeof window === 'undefined') return false
+  const map = getStarredMap()
+  const isStarred = !map[id]
+  map[id] = isStarred
+  localStorage.setItem(STARRED_KEY, JSON.stringify(map))
+  window.dispatchEvent(new Event('storage'))
+  return isStarred
 }

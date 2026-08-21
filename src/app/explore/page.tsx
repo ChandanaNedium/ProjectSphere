@@ -1,10 +1,10 @@
-'use client'
+﻿"use client"
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Search, Filter, BookOpen, Star, GitCompare, ArrowRight } from 'lucide-react'
-import Sidebar from '@/components/Sidebar'
-import { getAllProjects, type Project } from '@/lib/projects'
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Search, Filter, BookOpen, Star, GitCompare, ArrowRight } from "lucide-react"
+import Sidebar from "@/components/Sidebar"
+import { getAllProjects, toggleStarProject, isProjectStarred, type Project } from "@/lib/projects"
 
 const DOMAINS = ['All', 'AI & ML', 'Web Development', 'IoT', 'Cybersecurity', 'Data Science', 'Mobile', 'Blockchain', 'Healthcare', 'Education', 'Green Tech']
 const YEARS = ['All Years', '2025', '2024', '2023', '2022', '2021']
@@ -18,14 +18,15 @@ const domainColors: Record<string, string> = {
 }
 
 const statusColor: Record<string, string> = {
-  published: '#34d399', under_review: '#fbbf24', draft: '#6b7280',
+  published: '#34d399', approved: '#34d399', under_review: '#fbbf24', rejected: '#f87171', draft: '#6b7280',
 }
 const statusLabel: Record<string, string> = {
-  published: 'Published', under_review: 'Under Review', draft: 'Draft',
+  published: 'Published', approved: 'Approved', under_review: 'Under Review', rejected: 'Rejected', draft: 'Draft',
 }
 
 export default function ExplorePage() {
   const [projects, setProjects] = useState<Project[]>([])
+  const [starredMap, setStarredMap] = useState<Record<string, boolean>>({})
   const [query, setQuery] = useState('')
   const [domain, setDomain] = useState('All')
   const [year, setYear] = useState('All Years')
@@ -33,10 +34,30 @@ export default function ExplorePage() {
   const [selected, setSelected] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<'stars' | 'recent'>('stars')
 
-  // Load projects from store (includes user uploads)
+  const refreshData = () => {
+    const all = getAllProjects()
+    setProjects(all)
+    const map: Record<string, boolean> = {}
+    all.forEach(p => { map[p.id] = isProjectStarred(p.id) })
+    setStarredMap(map)
+  }
+
   useEffect(() => {
-    setProjects(getAllProjects())
+    refreshData()
+    window.addEventListener('storage', refreshData)
+    return () => window.removeEventListener('storage', refreshData)
   }, [])
+
+  const handleToggleStar = (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleStarProject(id)
+    refreshData()
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev)
+  }
 
   const filtered = projects
     .filter(p => {
@@ -48,10 +69,6 @@ export default function ExplorePage() {
       return true
     })
     .sort((a, b) => sortBy === 'stars' ? b.stars - a.stars : b.year - a.year)
-
-  const toggleSelect = (id: string) => {
-    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 3 ? [...prev, id] : prev)
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'hsl(222, 47%, 6%)', color: 'hsl(210, 40%, 96%)', fontFamily: 'Inter, system-ui, sans-serif', display: 'flex' }}>
@@ -66,13 +83,14 @@ export default function ExplorePage() {
               Browse {projects.length}+ student projects from top institutions. Select up to 3 to compare.
             </p>
           </div>
-          {selected.length >= 2 && (
+          {selected.length >= 1 && (
             <Link href={`/compare?ids=${selected.join(',')}`} style={{
-              display: 'flex', alignItems: 'center', gap: 6, background: '#8b5cf6',
-              color: 'white', padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+              color: 'white', padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none',
+              boxShadow: '0 4px 14px rgba(139,92,246,0.35)',
             }}>
-              <GitCompare style={{ width: 14, height: 14 }} />
-              Compare ({selected.length})
+              <GitCompare style={{ width: 15, height: 15 }} />
+              Compare Selected ({selected.length})
             </Link>
           )}
         </div>
@@ -146,6 +164,7 @@ export default function ExplorePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
             {filtered.map(project => {
               const isSelected = selected.includes(project.id)
+              const isStarred = !!starredMap[project.id]
               const color = domainColors[project.domain] || '#60a5fa'
               return (
                 <div key={project.id} style={{
@@ -157,31 +176,31 @@ export default function ExplorePage() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
                         <span style={{
                           display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
                           background: `${color}22`, color: color,
                         }}>{project.domain}</span>
-                        {project.status === 'under_review' && (
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-                            background: `${statusColor[project.status]}18`, color: statusColor[project.status],
-                          }}>{statusLabel[project.status]}</span>
-                        )}
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                          background: `${statusColor[project.status] || '#6b7280'}18`, color: statusColor[project.status] || '#6b7280',
+                        }}>{statusLabel[project.status] || project.status}</span>
                       </div>
                       <h3 style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.4, marginBottom: 0 }}>{project.title}</h3>
                     </div>
+
                     <button
                       onClick={() => toggleSelect(project.id)}
-                      title={isSelected ? 'Deselect' : 'Select to compare'}
+                      title={isSelected ? 'Deselect' : 'Select for comparison'}
                       style={{
-                        width: 28, height: 28, borderRadius: 6, flexShrink: 0, cursor: 'pointer',
+                        padding: '5px 10px', borderRadius: 8, flexShrink: 0, cursor: 'pointer',
                         background: isSelected ? '#8b5cf6' : 'rgba(255,255,255,0.07)',
                         border: isSelected ? '1px solid #8b5cf6' : '1px solid rgba(255,255,255,0.12)',
-                        color: 'white', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4,
                       }}
                     >
-                      {isSelected ? '✓' : '+'}
+                      <GitCompare style={{ width: 12, height: 12 }} />
+                      {isSelected ? 'Selected' : 'Compare'}
                     </button>
                   </div>
 
@@ -201,18 +220,28 @@ export default function ExplorePage() {
                       <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: 2 }}>{project.college}</div>
                       <div style={{ color: 'rgba(255,255,255,0.35)' }}>{project.students.join(', ')} · {project.year}</div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#fbbf24' }}>
-                      <Star style={{ width: 13, height: 13, fill: '#fbbf24' }} />
-                      <span style={{ fontWeight: 700 }}>{project.stars}</span>
-                    </div>
+
+                    <button
+                      onClick={(e) => handleToggleStar(e, project.id)}
+                      title={isStarred ? "Unstar project" : "Star project"}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8,
+                        background: isStarred ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${isStarred ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                        color: isStarred ? '#fbbf24' : 'rgba(255,255,255,0.6)', cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                      }}
+                    >
+                      <Star style={{ width: 13, height: 13, fill: isStarred ? '#fbbf24' : 'none' }} />
+                      <span>{project.stars}</span>
+                    </button>
                   </div>
 
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Link href={`/project/${project.id}`} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px', borderRadius: 8, background: 'rgba(59,130,246,0.1)', color: '#60a5fa', fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(59,130,246,0.2)' }}>
                       View Details <ArrowRight style={{ width: 12, height: 12 }} />
                     </Link>
-                    <Link href={`/similarity?ref=${project.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(139,92,246,0.1)', color: '#c084fc', fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(139,92,246,0.2)' }}>
-                      <GitCompare style={{ width: 12, height: 12 }} /> Similarity
+                    <Link href={`/compare?ids=${project.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: 'rgba(139,92,246,0.1)', color: '#c084fc', fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(139,92,246,0.2)' }}>
+                      <GitCompare style={{ width: 12, height: 12 }} /> Compare
                     </Link>
                   </div>
                 </div>

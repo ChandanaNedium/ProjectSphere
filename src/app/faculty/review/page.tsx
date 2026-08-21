@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { CheckCircle, XCircle, Clock, MessageSquare, User, BookOpen, Filter } from "lucide-react"
@@ -28,6 +28,9 @@ function saveReview(id: string, status: ReviewStatus, comment: string) {
   const all = loadReviews()
   all[id] = { status, comment }
   localStorage.setItem(REVIEW_KEY, JSON.stringify(all))
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("storage"))
+  }
 }
 
 export default function ReviewSubmissionsPage() {

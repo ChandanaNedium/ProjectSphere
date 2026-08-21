@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // Save report to database for audit & reproduction
     try {
-      await prisma.globalSimilarityCheck.create({
+      await (prisma as any).globalSimilarityCheck?.create({
         data: {
           id: report.id,
           userId: userId || undefined,
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get("id");
 
     if (id) {
-      const record = await prisma.globalSimilarityCheck.findUnique({
+      const record = await (prisma as any).globalSimilarityCheck?.findUnique({
         where: { id },
       });
       if (!record) {
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true, data: record });
     }
 
-    const checks = await prisma.globalSimilarityCheck.findMany({
+    const checks = await (prisma as any).globalSimilarityCheck?.findMany({
       take: 20,
       orderBy: { createdAt: "desc" },
     });

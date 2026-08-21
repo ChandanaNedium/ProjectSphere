@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { Users, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react"
@@ -8,6 +8,9 @@ export interface CollabRequest {
   id: string
   projectTitle: string
   requester: string
+  requesterEmail?: string
+  targetName?: string
+  targetEmail?: string
   college: string
   domain: string
   message: string

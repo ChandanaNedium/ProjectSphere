@@ -40,6 +40,9 @@ export default function ProjectDetailPage() {
   const [repositoryProfile, setRepositoryProfile] = useState<any>(null)
   const [repositoryError, setRepositoryError] = useState<string | null>(null)
 
+  const isAnalyzingRepo = Boolean(analyzingRepository)
+  const currentRepoProfile = repositoryProfile
+
   const loadProjectData = () => {
     const id = params?.id as string
     if (!id) return
@@ -312,9 +315,9 @@ export default function ProjectDetailPage() {
                   </a>
                   <button
                     onClick={() =>
-                      analyzeRepository(Boolean(repositoryProfile))
+                      analyzeRepository(Boolean(currentRepoProfile))
                     }
-                    disabled={analyzingRepository}
+                    disabled={isAnalyzingRepo}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -326,10 +329,10 @@ export default function ProjectDetailPage() {
                       fontSize: 13,
                       fontWeight: 700,
                       border: "1px solid rgba(59,130,246,0.25)",
-                      cursor: analyzingRepository ? "wait" : "pointer",
+                      cursor: isAnalyzingRepo ? "wait" : "pointer",
                     }}
                   >
-                    {analyzingRepository ? (
+                    {isAnalyzingRepo ? (
                       <RefreshCw
                         style={{
                           width: 15,
@@ -340,7 +343,7 @@ export default function ProjectDetailPage() {
                     ) : (
                       <GitBranch style={{ width: 15, height: 15 }} />
                     )}
-                    {repositoryProfile
+                    {currentRepoProfile
                       ? "Re-analyze Repository"
                       : "Analyze Repository"}
                   </button>

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { runGlobalSimilarityCheck } from '@/lib/global-similarity/orchestrator'
-import { ProjectInput } from '@/lib/global-similarity/types'
-import { prisma } from '@/lib/db'
+import { NextRequest, NextResponse } from "next/server";
+import { runGlobalSimilarityCheck } from "@/lib/global-similarity/orchestrator";
+import { ProjectInput } from "@/lib/global-similarity/types";
+import { prisma } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    const body = await req.json();
     const {
       title,
       description,
@@ -16,16 +16,17 @@ export async function POST(req: NextRequest) {
       expectedOutcome,
       userId,
       projectId,
-    } = body
+      githubRepoUrl,
+    } = body;
 
     if (!title || !description || !domain) {
       return NextResponse.json(
         {
           ok: false,
-          error: 'Title, description, and domain are required fields.',
+          error: "Title, description, and domain are required fields.",
         },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     const input: ProjectInput = {
@@ -34,12 +35,17 @@ export async function POST(req: NextRequest) {
       domain: String(domain).trim(),
       technologies: technologies || [],
       methodology: methodology ? String(methodology).trim() : undefined,
-      problemStatement: problemStatement ? String(problemStatement).trim() : undefined,
-      expectedOutcome: expectedOutcome ? String(expectedOutcome).trim() : undefined,
-    }
+      problemStatement: problemStatement
+        ? String(problemStatement).trim()
+        : undefined,
+      expectedOutcome: expectedOutcome
+        ? String(expectedOutcome).trim()
+        : undefined,
+      githubRepoUrl: githubRepoUrl ? String(githubRepoUrl).trim() : undefined,
+    };
 
     // Run the full global similarity discovery and semantic evaluation pipeline
-    const report = await runGlobalSimilarityCheck(input)
+    const report = await runGlobalSimilarityCheck(input);
 
     // Save report to database for audit & reproduction
     try {
@@ -64,49 +70,57 @@ export async function POST(req: NextRequest) {
           researchGaps: JSON.stringify(report.researchGaps),
           suggestions: JSON.stringify(report.differentiationSuggestions),
         },
-      })
+      });
     } catch (dbErr) {
-      console.warn('Could not persist GlobalSimilarityCheck to DB:', dbErr)
+      console.warn("Could not persist GlobalSimilarityCheck to DB:", dbErr);
     }
 
     return NextResponse.json({
       ok: true,
       data: report,
-    })
+    });
   } catch (error: any) {
-    console.error('Error running Global Similarity Check:', error)
+    console.error("Error running Global Similarity Check:", error);
     return NextResponse.json(
       {
         ok: false,
-        error: error?.message || 'An unexpected error occurred during global similarity analysis.',
+        error:
+          error?.message ||
+          "An unexpected error occurred during global similarity analysis.",
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const id = searchParams.get('id')
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
     if (id) {
       const record = await prisma.globalSimilarityCheck.findUnique({
         where: { id },
-      })
+      });
       if (!record) {
-        return NextResponse.json({ ok: false, error: 'Report not found' }, { status: 404 })
+        return NextResponse.json(
+          { ok: false, error: "Report not found" },
+          { status: 404 },
+        );
       }
-      return NextResponse.json({ ok: true, data: record })
+      return NextResponse.json({ ok: true, data: record });
     }
 
     const checks = await prisma.globalSimilarityCheck.findMany({
       take: 20,
-      orderBy: { createdAt: 'desc' },
-    })
+      orderBy: { createdAt: "desc" },
+    });
 
-    return NextResponse.json({ ok: true, data: checks })
+    return NextResponse.json({ ok: true, data: checks });
   } catch (error: any) {
-    return NextResponse.json({ ok: false, error: error?.message }, { status: 500 })
+    return NextResponse.json(
+      { ok: false, error: error?.message },
+      { status: 500 },
+    );
   }
 }

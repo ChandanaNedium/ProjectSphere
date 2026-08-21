@@ -134,6 +134,73 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {/* ── Faculty Endorsements Panel (students only) ── */}
+        {user?.role !== "faculty" && (() => {
+          const myEndorsed = myProjects.filter(p => endorsedSet.has(p.id))
+          if (myEndorsed.length === 0) return null
+          return (
+            <div style={{
+              marginBottom: 28, borderRadius: 16,
+              background: "linear-gradient(135deg, rgba(251,191,36,0.10), rgba(245,158,11,0.06))",
+              border: "1.5px solid rgba(251,191,36,0.45)",
+              padding: "24px",
+            }}>
+              {/* Section header */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(251,191,36,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Award style={{ width: 21, height: 21, color: "#fbbf24" }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: "#fbbf24" }}>🏅 Your Projects Are Faculty Endorsed!</div>
+                  <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 2 }}>
+                    {myEndorsed.length} of your project{myEndorsed.length > 1 ? "s have" : " has"} been officially endorsed by a faculty member.
+                  </div>
+                </div>
+              </div>
+
+              {/* Endorsed project cards */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {myEndorsed.map(p => (
+                  <Link key={p.id} href={`/project/${p.id}`} style={{ textDecoration: "none" }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "14px 18px", borderRadius: 12,
+                      background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)",
+                      cursor: "pointer", transition: "background 0.15s",
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "white", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.title}
+                        </div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ color: "#fbbf24", fontWeight: 700 }}>
+                            Endorsed by: {endorsedBy[p.id] || "Faculty"}
+                          </span>
+                          <span>·</span>
+                          <span>{p.domain}</span>
+                          <span>·</span>
+                          <span>⭐ {p.stars} stars</span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 14 }}>
+                        <span style={{
+                          display: "flex", alignItems: "center", gap: 5,
+                          padding: "5px 12px", borderRadius: 6,
+                          background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.35)",
+                          fontSize: 11, fontWeight: 800, color: "#fbbf24",
+                        }}>
+                          <Award style={{ width: 11, height: 11 }} /> Endorsed
+                        </span>
+                        <ChevronRight style={{ width: 16, height: 16, color: "rgba(255,255,255,0.3)" }} />
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Two columns */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
           {/* My Projects */}

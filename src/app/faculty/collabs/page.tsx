@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Users, CheckCircle, XCircle, Clock, RefreshCw } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 
-interface CollabRequest {
+export interface CollabRequest {
   id: string
   projectTitle: string
   requester: string
@@ -41,8 +41,12 @@ function loadCollabs(): CollabRequest[] {
     return JSON.parse(raw)
   } catch { return SEED_COLLABS }
 }
+
 function saveCollabs(collabs: CollabRequest[]) {
   localStorage.setItem(COLLAB_KEY, JSON.stringify(collabs))
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("storage"))
+  }
 }
 
 export default function CollabApprovalsPage() {
@@ -50,7 +54,15 @@ export default function CollabApprovalsPage() {
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
   const [processing, setProcessing] = useState<string | null>(null)
 
-  useEffect(() => { setCollabs(loadCollabs()) }, [])
+  const refreshCollabs = () => {
+    setCollabs(loadCollabs())
+  }
+
+  useEffect(() => {
+    refreshCollabs()
+    window.addEventListener("storage", refreshCollabs)
+    return () => window.removeEventListener("storage", refreshCollabs)
+  }, [])
 
   function handleAction(id: string, action: "approved" | "rejected") {
     setProcessing(id)
@@ -61,11 +73,11 @@ export default function CollabApprovalsPage() {
         return next
       })
       setProcessing(null)
-    }, 600)
+    }, 400)
   }
 
   function resetAll() {
-    localStorage.setItem(COLLAB_KEY, JSON.stringify(SEED_COLLABS))
+    saveCollabs(SEED_COLLABS)
     setCollabs(SEED_COLLABS)
   }
 
@@ -100,7 +112,7 @@ export default function CollabApprovalsPage() {
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.45)",
             fontSize: 12, fontWeight: 600, cursor: "pointer",
           }}>
-            <RefreshCw style={{ width: 12, height: 12 }} /> Reset Demo
+            <RefreshCw style={{ width: 12, height: 12 }} /> Reset Demo Data
           </button>
         </div>
         <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, marginBottom: 28 }}>

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Star, GitCompare, ExternalLink, Calendar, MapPin,
-  Users, Code, BookOpen, Shield, Tag,
+  Users, Code, BookOpen, Shield, Tag, RefreshCw, GitBranch
 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import { getProjectById, toggleStarProject, isProjectStarred, type Project } from '@/lib/projects'
@@ -36,6 +36,9 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [isStarred, setIsStarred] = useState(false)
   const [notFound, setNotFound] = useState(false)
+  const [analyzingRepository, setAnalyzingRepository] = useState(false)
+  const [repositoryProfile, setRepositoryProfile] = useState<any>(null)
+  const [repositoryError, setRepositoryError] = useState<string | null>(null)
 
   const loadProjectData = () => {
     const id = params?.id as string
@@ -54,6 +57,29 @@ export default function ProjectDetailPage() {
     window.addEventListener('storage', loadProjectData)
     return () => window.removeEventListener('storage', loadProjectData)
   }, [params])
+
+  const analyzeRepository = async (forceReanalyze = false) => {
+    if (!project?.github) return;
+    setAnalyzingRepository(true);
+    setRepositoryError(null);
+    try {
+      const res = await fetch('/api/github/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: project.github, forceReanalyze }),
+      });
+      const data = await res.json();
+      if (res.ok && data.repositoryProfile) {
+        setRepositoryProfile(data.repositoryProfile);
+      } else {
+        setRepositoryError(data.error || 'Failed to analyze repository');
+      }
+    } catch (err: any) {
+      setRepositoryError(err.message || 'Failed to analyze repository');
+    } finally {
+      setAnalyzingRepository(false);
+    }
+  };
 
   const handleToggleStar = () => {
     if (!project) return

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { Users, MessageCircle, Star, MapPin, Code, ChevronRight, X, Send, CheckCircle, XCircle, Clock, Search, ShieldCheck, UserCheck, Inbox, SendHorizontal, Filter } from "lucide-react"
+import { Users, MessageCircle, Star, MapPin, Code, ChevronRight, X, Send, CheckCircle, XCircle, Clock, Search, ShieldCheck, UserCheck, Inbox, SendHorizontal } from "lucide-react"
 import Link from "next/link"
 import Sidebar from "@/components/Sidebar"
 import { getSession, getAllRegisteredUsers, type User } from "@/lib/client-auth"
@@ -10,38 +10,32 @@ import type { CollabRequest } from "../faculty/collabs/page"
 
 const COLLAB_KEY = "ps_collab_requests"
 
-const SEED_REQUESTS: CollabRequest[] = [
-  {
-    id: "c_demo_1",
-    projectTitle: "AI & Healthcare Analytics Research",
-    requester: "Riya Sharma",
-    requesterEmail: "riya@demo.com",
-    requesterRole: "student",
-    targetName: "Dr. Priya Patel",
-    targetEmail: "priya@demo.com",
-    targetRole: "faculty",
-    college: "IIT Delhi",
-    domain: "AI & ML",
-    message: "Hi Dr. Priya, I would love to collaborate with you on your healthcare analytics and AI project. Could I join your research initiative?",
-    status: "pending",
-    date: new Date().toISOString().split('T')[0]
-  },
-  {
-    id: "c_demo_2",
-    projectTitle: "Decentralized Credential System",
-    requester: "Arjun Verma",
-    requesterEmail: "arjun.verma@iitb.ac.in",
-    requesterRole: "student",
-    targetName: "Riya Sharma",
-    targetEmail: "riya@demo.com",
-    targetRole: "student",
-    college: "IIT Bombay",
-    domain: "Blockchain",
-    message: "Hey Riya, I saw your full-stack expertise. Want to pair up on building smart contracts for academic credentials?",
-    status: "pending",
-    date: new Date().toISOString().split('T')[0]
-  }
-]
+function matchesTargetUser(r: CollabRequest, currentUser: User | null): boolean {
+  if (!currentUser) return false
+  const userEmail = currentUser.email.toLowerCase().trim()
+  const userName = currentUser.name.toLowerCase().trim()
+
+  if (r.targetEmail && r.targetEmail.toLowerCase().trim() === userEmail) return true
+  if (r.targetName && r.targetName.toLowerCase().trim() === userName) return true
+  if (r.targetName && (userName.includes(r.targetName.toLowerCase().trim()) || r.targetName.toLowerCase().trim().includes(userName))) return true
+
+  // Fallback for Faculty role: show requests targeting faculty if target email isn't explicitly set
+  if (currentUser.role === 'faculty' && (!r.targetEmail || r.targetRole === 'faculty')) return true
+
+  return false
+}
+
+function matchesSenderUser(r: CollabRequest, currentUser: User | null): boolean {
+  if (!currentUser) return false
+  const userEmail = currentUser.email.toLowerCase().trim()
+  const userName = currentUser.name.toLowerCase().trim()
+
+  if (r.requesterEmail && r.requesterEmail.toLowerCase().trim() === userEmail) return true
+  if (r.requester && r.requester.toLowerCase().trim() === userName) return true
+  if (r.requester && (userName.includes(r.requester.toLowerCase().trim()) || r.requester.toLowerCase().trim().includes(userName))) return true
+
+  return false
+}
 
 function ConnectModal({ person, onClose, onSend }: { person: User; onClose: () => void; onSend: (msg: string) => void }) {
   const [message, setMessage] = useState(`Hi ${person.name.split(' ')[0]}, I came across your profile on ProjectSphere and I'd love to collaborate with you. I'm interested in your work in ${person.interests ? person.interests.split(',')[0].trim() : person.role}. Would you be open to connecting?`)
@@ -52,7 +46,7 @@ function ConnectModal({ person, onClose, onSend }: { person: User; onClose: () =
     setSending(true)
     setTimeout(() => {
       onSend(message)
-    }, 400)
+    }, 300)
   }
 
   return (
@@ -186,11 +180,10 @@ function CollaborateContent() {
       if (raw) {
         setCollabRequests(JSON.parse(raw))
       } else {
-        localStorage.setItem(COLLAB_KEY, JSON.stringify(SEED_REQUESTS))
-        setCollabRequests(SEED_REQUESTS)
+        setCollabRequests([])
       }
     } catch {
-      setCollabRequests(SEED_REQUESTS)
+      setCollabRequests([])
     }
   }
 
@@ -203,10 +196,11 @@ function CollaborateContent() {
   const handleSend = (msg: string) => {
     if (!connectTarget) return
     const session = getSession()
-    const requesterName = session?.name || "Riya Sharma"
-    const requesterEmail = session?.email || "riya@demo.com"
+
+    const requesterName = session?.name || "Student User"
+    const requesterEmail = session?.email || "user@projectsphere.org"
     const requesterRole = session?.role || "student"
-    const requesterCollege = session?.institution || "IIT Delhi"
+    const requesterCollege = session?.institution || "ProjectSphere Institute"
 
     const newReq: CollabRequest = {
       id: `c_${Date.now()}`,
@@ -224,7 +218,13 @@ function CollaborateContent() {
       date: new Date().toISOString().split('T')[0]
     }
 
-    const updated = [newReq, ...collabRequests]
+    const rawCurrent = localStorage.getItem(COLLAB_KEY)
+    let currentList: CollabRequest[] = []
+    if (rawCurrent) {
+      try { currentList = JSON.parse(rawCurrent) } catch {}
+    }
+
+    const updated = [newReq, ...currentList]
     localStorage.setItem(COLLAB_KEY, JSON.stringify(updated))
     setCollabRequests(updated)
     window.dispatchEvent(new Event("storage"))
@@ -237,12 +237,18 @@ function CollaborateContent() {
   const handleApprovalAction = (id: string, newStatus: 'approved' | 'rejected') => {
     setProcessingId(id)
     setTimeout(() => {
-      const updated = collabRequests.map(r => r.id === id ? { ...r, status: newStatus } : r)
+      const rawCurrent = localStorage.getItem(COLLAB_KEY)
+      let currentList: CollabRequest[] = collabRequests
+      if (rawCurrent) {
+        try { currentList = JSON.parse(rawCurrent) } catch {}
+      }
+
+      const updated = currentList.map(r => r.id === id ? { ...r, status: newStatus } : r)
       setCollabRequests(updated)
       localStorage.setItem(COLLAB_KEY, JSON.stringify(updated))
       window.dispatchEvent(new Event("storage"))
       setProcessingId(null)
-    }, 300)
+    }, 200)
   }
 
   const filteredUsers = registeredUsers.filter(u => {
@@ -257,31 +263,11 @@ function CollaborateContent() {
     )
   })
 
-  // Filter requests targeting the current logged-in user (Approvals received by me)
-  const incomingApprovals = collabRequests.filter(r => {
-    if (!currentUser) return true
-    const userEmail = currentUser.email.toLowerCase()
-    const userName = currentUser.name.toLowerCase()
+  // Filter incoming approvals for current user
+  const incomingApprovals = collabRequests.filter(r => matchesTargetUser(r, currentUser))
 
-    if (r.targetEmail && r.targetEmail.toLowerCase() === userEmail) return true
-    if (r.targetName && r.targetName.toLowerCase() === userName) return true
-
-    // Fallback: If logged in as Faculty and request has no specific target or targets faculty
-    if (currentUser.role === 'faculty' && (!r.targetEmail || r.targetRole === 'faculty')) return true
-
-    return false
-  })
-
-  // Filter requests sent by the current logged-in user
-  const sentRequests = collabRequests.filter(r => {
-    if (!currentUser) return true
-    const userEmail = currentUser.email.toLowerCase()
-    const userName = currentUser.name.toLowerCase()
-
-    if (r.requesterEmail && r.requesterEmail.toLowerCase() === userEmail) return true
-    if (r.requester && r.requester.toLowerCase() === userName) return true
-    return false
-  })
+  // Filter sent requests by current user
+  const sentRequests = collabRequests.filter(r => matchesSenderUser(r, currentUser))
 
   const pendingApprovalsCount = incomingApprovals.filter(r => r.status === 'pending').length
 
@@ -296,7 +282,7 @@ function CollaborateContent() {
       <Sidebar />
 
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto', minWidth: 0 }}>
-        {/* User Badge Banner */}
+        {/* Current User Portal Banner */}
         {currentUser && (
           <div style={{
             marginBottom: 20, padding: '12px 18px', borderRadius: 12,
@@ -403,10 +389,10 @@ function CollaborateContent() {
             {/* Collaborator grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
               {filteredUsers.map(u => {
-                const isMe = currentUser?.email?.toLowerCase() === u.email.toLowerCase()
+                const isMe = currentUser?.email?.toLowerCase().trim() === u.email.toLowerCase().trim()
                 const hasRequested = collabRequests.some(r =>
-                  (r.requesterEmail?.toLowerCase() === currentUser?.email?.toLowerCase() || r.requester?.toLowerCase() === currentUser?.name?.toLowerCase()) &&
-                  (r.targetEmail?.toLowerCase() === u.email.toLowerCase() || r.targetName?.toLowerCase() === u.name.toLowerCase() || r.projectTitle.includes(u.name))
+                  matchesSenderUser(r, currentUser) &&
+                  (r.targetEmail?.toLowerCase().trim() === u.email.toLowerCase().trim() || r.targetName?.toLowerCase().trim() === u.name.toLowerCase().trim())
                 )
                 return (
                   <div key={u.id} style={{

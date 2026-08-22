@@ -10,21 +10,22 @@ import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { getSession, logout, type User } from '@/lib/client-auth'
 
 const NAV = [
-  { icon: Home,       label: 'Dashboard',          href: '/dashboard' },
-  { icon: Search,     label: 'Explore',             href: '/explore' },
-  { icon: Upload,     label: 'Upload Project',      href: '/upload' },
-  { icon: GitCompare, label: 'Similarity Check',    href: '/similarity' },
-  { icon: Lightbulb,  label: 'Innovation Insights', href: '/insights' },
-  { icon: Users,      label: 'Collaborations',      href: '/collaborate' },
-  { icon: BarChart2,  label: 'Analytics',           href: '/analytics' },
-  { icon: Shield,     label: 'Originality Reports', href: '/reports' },
+  { icon: Home,       label: 'Dashboard',             href: '/dashboard' },
+  { icon: Search,     label: 'Explore',                href: '/explore' },
+  { icon: Upload,     label: 'Upload Project',         href: '/upload' },
+  { icon: GitCompare, label: 'Similarity Check',       href: '/similarity' },
+  { icon: Lightbulb,  label: 'Innovation Insights',    href: '/insights' },
+  { icon: Users,      label: 'Collaborations',         href: '/collaborate' },
+  { icon: CheckCircle,label: 'Collaboration Approvals',href: '/collaborate?tab=approvals' },
+  { icon: BarChart2,  label: 'Analytics',              href: '/analytics' },
+  { icon: Shield,     label: 'Originality Reports',    href: '/reports' },
 ]
 
 // Faculty specific navigation items (visible only to faculty role)
 const FACULTY_NAV = [
   { icon: CheckCircle, label: 'Review Submissions', href: '/faculty/review' },
   { icon: Award,       label: 'Endorse Projects',   href: '/faculty/endorse' },
-  { icon: Users,       label: 'Collaboration Approvals', href: '/faculty/collabs' },
+  { icon: Users,       label: 'Faculty Collabs',    href: '/faculty/collabs' },
   { icon: BarChart2,   label: 'Domain Stats',      href: '/faculty/stats' },
 ]
 

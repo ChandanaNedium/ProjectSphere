@@ -149,43 +149,6 @@ export default function LoginPage() {
           <Link href="/register" style={{ color: '#60a5fa', fontWeight: 600, textDecoration: 'none' }}>Create one free →</Link>
         </p>
 
-        {/* Quick Demo Logins */}
-        <div style={{ marginTop: 28, padding: '16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
-            ⚡ Quick Demo Logins for Testing:
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => {
-                loginUser('riya@demo.com', 'demo1234')
-                router.push('/dashboard')
-              }}
-              style={{
-                padding: '8px 12px', borderRadius: 8, background: 'rgba(59,130,246,0.12)',
-                border: '1px solid rgba(59,130,246,0.3)', color: '#60a5fa', fontSize: 12, fontWeight: 700,
-                cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              🎓 Riya (Student)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                loginUser('priya@demo.com', 'demo1234')
-                router.push('/dashboard')
-              }}
-              style={{
-                padding: '8px 12px', borderRadius: 8, background: 'rgba(192,132,252,0.12)',
-                border: '1px solid rgba(192,132,252,0.3)', color: '#c084fc', fontSize: 12, fontWeight: 700,
-                cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              👨‍🏫 Priya (Faculty)
-            </button>
-          </div>
-        </div>
-
 
       </div>
 

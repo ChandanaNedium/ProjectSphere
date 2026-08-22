@@ -17,10 +17,20 @@ const DEMO_USERS: Record<string, { password: string; user: User }> = {
     password: 'demo1234',
     user: { id: 'demo-faculty', name: 'Dr. Ramesh Iyer', email: 'faculty@demo.com', role: 'faculty', institution: 'IIT Bombay', skills: ['Machine Learning', 'NLP', 'Research Guidance'], bio: 'Senior Professor in CS & AI. Open to mentoring innovative student projects.', interests: 'AI, Deep Learning, NLP' },
   },
+  'priya@demo.com': {
+    password: 'demo1234',
+    user: { id: 'demo-priya', name: 'Dr. Priya Patel', email: 'priya@demo.com', role: 'faculty', institution: 'BITS Pilani', skills: ['Data Science', 'IoT', 'Research Mentorship'], bio: 'Associate Professor in Computer Science & Data Analytics.', interests: 'Data Science, IoT, Cloud Computing' },
+  },
+  'riya@demo.com': {
+    password: 'demo1234',
+    user: { id: 'demo-riya', name: 'Riya Sharma', email: 'riya@demo.com', role: 'student', institution: 'IIT Delhi', skills: ['Python', 'React', 'Machine Learning'], bio: 'Final year student working on AI and Web applications.', interests: 'AI, Full Stack, Mobile Apps' },
+  },
 }
 
 const DEFAULT_USERS: User[] = [
   { id: 'demo-faculty', name: 'Dr. Ramesh Iyer', email: 'faculty@demo.com', role: 'faculty', institution: 'IIT Bombay', skills: ['Machine Learning', 'NLP', 'Research Guidance'], bio: 'Senior Professor in CS & AI. Open to mentoring innovative student projects.', interests: 'AI, Deep Learning, NLP' },
+  { id: 'demo-priya', name: 'Dr. Priya Patel', email: 'priya@demo.com', role: 'faculty', institution: 'BITS Pilani', skills: ['Data Science', 'IoT', 'Research Mentorship'], bio: 'Associate Professor in Computer Science & Data Analytics.', interests: 'Data Science, IoT, Cloud Computing' },
+  { id: 'demo-riya', name: 'Riya Sharma', email: 'riya@demo.com', role: 'student', institution: 'IIT Delhi', skills: ['Python', 'React', 'Machine Learning'], bio: 'Final year student working on AI and Web applications.', interests: 'AI, Full Stack, Mobile Apps' },
   { id: '1', name: 'Arjun Verma', email: 'arjun.verma@iitb.ac.in', role: 'student', institution: 'IIT Bombay', skills: ['Python', 'TensorFlow', 'PyTorch', 'Computer Vision'], bio: 'Passionate about building AI systems that solve real-world problems. Looking for collaborators in NLP and robotics.', interests: 'NLP, Computer Vision, Robotics, Healthcare AI' },
   { id: '2', name: 'Sanya Gupta', email: 'sanya.gupta@bits-pilani.ac.in', role: 'student', institution: 'BITS Pilani', skills: ['R', 'Python', 'SQL', 'Tableau', 'Statistics'], bio: 'Data scientist focused on healthcare analytics. Open to interdisciplinary collaborations.', interests: 'Healthcare Analytics, Clinical ML, Bioinformatics' },
   { id: '3', name: 'Kiran Rao', email: 'kiran.rao@nitt.edu', role: 'student', institution: 'NIT Trichy', skills: ['Solidity', 'Web3.js', 'Ethereum', 'IPFS', 'Rust'], bio: 'Building decentralized systems for education and supply chain. Currently busy with thesis.', interests: 'DeFi, NFTs, Smart Contracts, DAO Governance' },

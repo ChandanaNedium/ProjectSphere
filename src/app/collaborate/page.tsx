@@ -2,13 +2,46 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
-import { Users, MessageCircle, Star, MapPin, Code, ChevronRight, X, Send, CheckCircle, XCircle, Clock, Search, ShieldCheck, UserCheck, Inbox, SendHorizontal } from "lucide-react"
+import { Users, MessageCircle, Star, MapPin, Code, ChevronRight, X, Send, CheckCircle, XCircle, Clock, Search, ShieldCheck, UserCheck, Inbox, SendHorizontal, Filter } from "lucide-react"
 import Link from "next/link"
 import Sidebar from "@/components/Sidebar"
 import { getSession, getAllRegisteredUsers, type User } from "@/lib/client-auth"
 import type { CollabRequest } from "../faculty/collabs/page"
 
 const COLLAB_KEY = "ps_collab_requests"
+
+const SEED_REQUESTS: CollabRequest[] = [
+  {
+    id: "c_demo_1",
+    projectTitle: "AI & Healthcare Analytics Research",
+    requester: "Riya Sharma",
+    requesterEmail: "riya@demo.com",
+    requesterRole: "student",
+    targetName: "Dr. Priya Patel",
+    targetEmail: "priya@demo.com",
+    targetRole: "faculty",
+    college: "IIT Delhi",
+    domain: "AI & ML",
+    message: "Hi Dr. Priya, I would love to collaborate with you on your healthcare analytics and AI project. Could I join your research initiative?",
+    status: "pending",
+    date: new Date().toISOString().split('T')[0]
+  },
+  {
+    id: "c_demo_2",
+    projectTitle: "Decentralized Credential System",
+    requester: "Arjun Verma",
+    requesterEmail: "arjun.verma@iitb.ac.in",
+    requesterRole: "student",
+    targetName: "Riya Sharma",
+    targetEmail: "riya@demo.com",
+    targetRole: "student",
+    college: "IIT Bombay",
+    domain: "Blockchain",
+    message: "Hey Riya, I saw your full-stack expertise. Want to pair up on building smart contracts for academic credentials?",
+    status: "pending",
+    date: new Date().toISOString().split('T')[0]
+  }
+]
 
 function ConnectModal({ person, onClose, onSend }: { person: User; onClose: () => void; onSend: (msg: string) => void }) {
   const [message, setMessage] = useState(`Hi ${person.name.split(' ')[0]}, I came across your profile on ProjectSphere and I'd love to collaborate with you. I'm interested in your work in ${person.interests ? person.interests.split(',')[0].trim() : person.role}. Would you be open to connecting?`)
@@ -153,17 +186,11 @@ function CollaborateContent() {
       if (raw) {
         setCollabRequests(JSON.parse(raw))
       } else {
-        // Default seed requests so user immediately sees approval workflows
-        const seed: CollabRequest[] = [
-          { id: "c1", projectTitle: "AI Mental Health Companion", requester: "Anika Sharma", requesterEmail: "anika@iitd.ac.in", targetName: session?.name || "User", college: "IIT Delhi", domain: "AI & ML", message: "Would like to collaborate on the NLP module and extend multilingual support.", status: "pending", date: new Date().toISOString().split('T')[0] },
-          { id: "c2", projectTitle: "Blockchain Verification Protocol", requester: "Ravi Kumar", requesterEmail: "ravi@nitt.edu", targetName: session?.name || "User", college: "NIT Surathkal", domain: "Blockchain", message: "Our team has experience with Solidity and wants to add multi-chain support.", status: "pending", date: new Date().toISOString().split('T')[0] },
-          { id: "c3", projectTitle: "Smart Energy Dashboard", requester: "Priya Nair", requesterEmail: "priya@bits.edu", targetName: session?.name || "User", college: "BITS Pilani", domain: "IoT", message: "Looking to integrate solar panel monitoring into this system.", status: "approved", date: "2026-08-20" },
-        ]
-        localStorage.setItem(COLLAB_KEY, JSON.stringify(seed))
-        setCollabRequests(seed)
+        localStorage.setItem(COLLAB_KEY, JSON.stringify(SEED_REQUESTS))
+        setCollabRequests(SEED_REQUESTS)
       }
     } catch {
-      setCollabRequests([])
+      setCollabRequests(SEED_REQUESTS)
     }
   }
 
@@ -176,16 +203,20 @@ function CollaborateContent() {
   const handleSend = (msg: string) => {
     if (!connectTarget) return
     const session = getSession()
-    const requesterName = session?.name || "Student User"
-    const requesterCollege = session?.institution || "IIT Bombay"
+    const requesterName = session?.name || "Riya Sharma"
+    const requesterEmail = session?.email || "riya@demo.com"
+    const requesterRole = session?.role || "student"
+    const requesterCollege = session?.institution || "IIT Delhi"
 
     const newReq: CollabRequest = {
       id: `c_${Date.now()}`,
       projectTitle: `Collaboration with ${connectTarget.name}`,
       requester: requesterName,
-      requesterEmail: session?.email || "student@demo.com",
+      requesterEmail: requesterEmail,
+      requesterRole: requesterRole,
       targetName: connectTarget.name,
       targetEmail: connectTarget.email,
+      targetRole: connectTarget.role,
       college: requesterCollege,
       domain: connectTarget.interests ? connectTarget.interests.split(',')[0].trim() : (connectTarget.role === 'faculty' ? 'Faculty Mentorship' : 'AI & ML'),
       message: msg,
@@ -195,6 +226,7 @@ function CollaborateContent() {
 
     const updated = [newReq, ...collabRequests]
     localStorage.setItem(COLLAB_KEY, JSON.stringify(updated))
+    setCollabRequests(updated)
     window.dispatchEvent(new Event("storage"))
 
     setConnectTarget(null)
@@ -225,8 +257,33 @@ function CollaborateContent() {
     )
   })
 
-  // Pending requests targeted for approvals
-  const pendingApprovalsCount = collabRequests.filter(r => r.status === 'pending').length
+  // Filter requests targeting the current logged-in user (Approvals received by me)
+  const incomingApprovals = collabRequests.filter(r => {
+    if (!currentUser) return true
+    const userEmail = currentUser.email.toLowerCase()
+    const userName = currentUser.name.toLowerCase()
+
+    if (r.targetEmail && r.targetEmail.toLowerCase() === userEmail) return true
+    if (r.targetName && r.targetName.toLowerCase() === userName) return true
+
+    // Fallback: If logged in as Faculty and request has no specific target or targets faculty
+    if (currentUser.role === 'faculty' && (!r.targetEmail || r.targetRole === 'faculty')) return true
+
+    return false
+  })
+
+  // Filter requests sent by the current logged-in user
+  const sentRequests = collabRequests.filter(r => {
+    if (!currentUser) return true
+    const userEmail = currentUser.email.toLowerCase()
+    const userName = currentUser.name.toLowerCase()
+
+    if (r.requesterEmail && r.requesterEmail.toLowerCase() === userEmail) return true
+    if (r.requester && r.requester.toLowerCase() === userName) return true
+    return false
+  })
+
+  const pendingApprovalsCount = incomingApprovals.filter(r => r.status === 'pending').length
 
   const statusMeta = {
     pending:  { bg: "rgba(251,191,36,0.12)",  color: "#fbbf24", label: "Pending Approval", icon: Clock },
@@ -239,8 +296,28 @@ function CollaborateContent() {
       <Sidebar />
 
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto', minWidth: 0 }}>
+        {/* User Badge Banner */}
+        {currentUser && (
+          <div style={{
+            marginBottom: 20, padding: '12px 18px', borderRadius: 12,
+            background: currentUser.role === 'faculty' ? 'rgba(192,132,252,0.08)' : 'rgba(59,130,246,0.08)',
+            border: `1px solid ${currentUser.role === 'faculty' ? 'rgba(192,132,252,0.2)' : 'rgba(59,130,246,0.2)'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 16 }}>{currentUser.role === 'faculty' ? '👨‍🏫' : '🎓'}</span>
+              <span>
+                Logged in as <strong>{currentUser.name}</strong> ({currentUser.institution}) · <span style={{ color: currentUser.role === 'faculty' ? '#c084fc' : '#60a5fa', fontWeight: 700 }}>{currentUser.role.toUpperCase()} PORTAL</span>
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+              Real-time collaboration sync active
+            </div>
+          </div>
+        )}
+
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(45,212,191,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Users style={{ width: 22, height: 22, color: '#2dd4bf' }} />
@@ -248,7 +325,7 @@ function CollaborateContent() {
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>ProjectSphere Collaborations</h1>
               <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 2 }}>
-                Connect with all registered students & faculty across institutions in real time.
+                Connect students & faculty across institutions with real-time approval status sync.
               </p>
             </div>
           </div>
@@ -303,7 +380,7 @@ function CollaborateContent() {
             }}
           >
             <SendHorizontal style={{ width: 16, height: 16 }} />
-            My Sent Requests ({collabRequests.length})
+            My Sent Requests ({sentRequests.length})
           </button>
         </div>
 
@@ -327,7 +404,10 @@ function CollaborateContent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
               {filteredUsers.map(u => {
                 const isMe = currentUser?.email?.toLowerCase() === u.email.toLowerCase()
-                const hasRequested = collabRequests.some(r => r.targetEmail === u.email || r.projectTitle.includes(u.name))
+                const hasRequested = collabRequests.some(r =>
+                  (r.requesterEmail?.toLowerCase() === currentUser?.email?.toLowerCase() || r.requester?.toLowerCase() === currentUser?.name?.toLowerCase()) &&
+                  (r.targetEmail?.toLowerCase() === u.email.toLowerCase() || r.targetName?.toLowerCase() === u.name.toLowerCase() || r.projectTitle.includes(u.name))
+                )
                 return (
                   <div key={u.id} style={{
                     borderRadius: 16, background: 'rgba(255,255,255,0.03)',
@@ -371,7 +451,7 @@ function CollaborateContent() {
                     <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                       {isMe ? (
                         <button disabled style={{ width: '100%', padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)', fontWeight: 600, fontSize: 13 }}>
-                          Your Account
+                          Your Profile
                         </button>
                       ) : (
                         <button
@@ -396,22 +476,22 @@ function CollaborateContent() {
           </>
         )}
 
-        {/* TAB 2: COLLABORATION APPROVALS (Real-time approvals for Student & Faculty) */}
+        {/* TAB 2: COLLABORATION APPROVALS (Requests received by logged-in user) */}
         {activeTab === 'approvals' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ padding: '16px 20px', borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', fontSize: 13, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 10 }}>
               <ShieldCheck style={{ width: 18, height: 18, color: '#818cf8', flexShrink: 0 }} />
               <div>
-                <strong>Real-Time Collaboration Approvals:</strong> As a registered student or faculty member, review incoming requests from peers and faculty. Approving or rejecting updates live across all sessions immediately.
+                <strong>Incoming Collaboration Approvals for {currentUser?.name || "You"}:</strong> Requests sent to you by students or faculty appear here. Click <strong>Approve</strong> or <strong>Reject</strong> to update the status in real time.
               </div>
             </div>
 
-            {collabRequests.length === 0 ? (
+            {incomingApprovals.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-                No collaboration requests received yet.
+                No incoming collaboration requests received yet.
               </div>
             ) : (
-              collabRequests.map(req => {
+              incomingApprovals.map(req => {
                 const meta = statusMeta[req.status] || statusMeta.pending
                 const Icon = meta.icon
                 return (
@@ -423,7 +503,7 @@ function CollaborateContent() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 16, color: 'white', marginBottom: 6 }}>{req.projectTitle}</div>
                         <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
-                          <span>👤 <strong>Requester:</strong> {req.requester}</span>
+                          <span>👤 <strong>Requester:</strong> {req.requester} ({req.requesterRole === 'faculty' ? '👨‍🏫 Faculty' : '🎓 Student'})</span>
                           <span>🏛 <strong>College:</strong> {req.college}</span>
                           <span style={{ color: '#60a5fa', fontWeight: 600 }}>🎯 {req.domain}</span>
                           <span>📅 {req.date}</span>
@@ -438,7 +518,7 @@ function CollaborateContent() {
                       "{req.message}"
                     </div>
 
-                    {req.status === "pending" && (
+                    {req.status === "pending" ? (
                       <div style={{ display: "flex", gap: 12 }}>
                         <button
                           onClick={() => handleApprovalAction(req.id, "approved")}
@@ -463,6 +543,10 @@ function CollaborateContent() {
                           {processingId === req.id ? "Processing…" : "Reject Collaboration"}
                         </button>
                       </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: meta.color, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icon style={{ width: 15, height: 15 }} /> Decision recorded as {req.status.toUpperCase()}
+                      </div>
                     )}
                   </div>
                 )
@@ -471,15 +555,22 @@ function CollaborateContent() {
           </div>
         )}
 
-        {/* TAB 3: MY SENT REQUESTS */}
+        {/* TAB 3: MY SENT REQUESTS (Requests sent by logged-in user) */}
         {activeTab === 'sent' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {collabRequests.length === 0 ? (
+            <div style={{ padding: '16px 20px', borderRadius: 12, background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', fontSize: 13, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <SendHorizontal style={{ width: 18, height: 18, color: '#34d399', flexShrink: 0 }} />
+              <div>
+                <strong>Sent Requests Status Tracker:</strong> Track collaboration requests sent by {currentUser?.name || "You"}. When the recipient approves, your status updates to <strong>Approved</strong> in real time.
+              </div>
+            </div>
+
+            {sentRequests.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px', background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
                 You haven't sent any collaboration requests yet.
               </div>
             ) : (
-              collabRequests.map(req => {
+              sentRequests.map(req => {
                 const meta = statusMeta[req.status] || statusMeta.pending
                 const Icon = meta.icon
                 return (
@@ -490,7 +581,7 @@ function CollaborateContent() {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15, color: 'white', marginBottom: 4 }}>{req.projectTitle}</div>
                       <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)' }}>
-                        Sent by {req.requester} · Domain: {req.domain} · Date: {req.date}
+                        Sent to <strong>{req.targetName || "Collaborator"}</strong> ({req.targetRole === 'faculty' ? '👨‍🏫 Faculty' : '🎓 Student'}) · Domain: {req.domain} · Date: {req.date}
                       </div>
                       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 8, fontStyle: 'italic' }}>
                         "{req.message}"

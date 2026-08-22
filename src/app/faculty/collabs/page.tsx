@@ -9,8 +9,10 @@ export interface CollabRequest {
   projectTitle: string
   requester: string
   requesterEmail?: string
+  requesterRole?: 'student' | 'faculty'
   targetName?: string
   targetEmail?: string
+  targetRole?: 'student' | 'faculty'
   college: string
   domain: string
   message: string
